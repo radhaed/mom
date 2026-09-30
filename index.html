@@ -6,12 +6,14 @@
   <title>rushi.isyour.mom // command</title>
   <style>
     :root {
-      --bg: #09090b;
-      --card: #121215;
-      --border: #222227;
+      --bg: #0c0c0e;
+      --card: #141418;
+      --card-border: #23232a;
       --text: #f4f4f5;
       --muted: #71717a;
-      --accent: #22c55e;
+      --subtle: #3f3f46;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
@@ -25,270 +27,302 @@
       flex-direction: column;
       align-items: center;
       padding: 1.5rem 1rem 3rem 1rem;
+      -webkit-font-smoothing: antialiased;
     }
-    .container {
+    .shell {
       width: 100%;
-      max-width: 600px;
+      max-width: 580px;
       display: flex;
       flex-direction: column;
       gap: 0.85rem;
     }
+
+    /* Top Metadata */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-family: var(--font-mono);
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
+      font-size: 0.72rem;
       color: var(--muted);
-      padding: 0.25rem 0.25rem 0.5rem;
+      letter-spacing: 0.06em;
+      padding: 0.25rem 0.2rem;
     }
+
+    /* Bento Card Primitives */
     .card {
       background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 0.85rem;
-      padding: 1.25rem;
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 1.15rem;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.5rem;
     }
-    .card-label {
+    .label {
       font-family: var(--font-mono);
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.45rem;
     }
     .dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px #22c55e55;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.35);
     }
-    .status-title {
-      font-size: 1.45rem;
+
+    /* Module 1: Ambient State */
+    .status-headline {
+      font-size: 1.35rem;
       font-weight: 600;
       letter-spacing: -0.02em;
+      line-height: 1.25;
     }
-    .status-sub {
-      color: var(--muted);
+    .status-body {
       font-size: 0.88rem;
-      line-height: 1.4;
+      color: var(--muted);
+      line-height: 1.45;
     }
-    .grid-2 {
+
+    /* Split Grid */
+    .grid-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0.85rem;
     }
-    .val-highlight {
-      font-size: 1.15rem;
+    .data-metric {
+      font-size: 1.1rem;
       font-weight: 500;
+      letter-spacing: -0.01em;
     }
+
+    /* Action & Utility Buttons */
     .btn-stack {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.45rem;
+      margin-top: 0.25rem;
     }
-    .action-btn {
+    .util-btn {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #18181c;
-      border: 1px solid var(--border);
+      background: #191920;
+      border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 0.75rem 0.9rem;
-      border-radius: 0.55rem;
-      font-size: 0.85rem;
+      padding: 0.7rem 0.85rem;
+      border-radius: 0.5rem;
+      font-size: 0.84rem;
       text-decoration: none;
       cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
     }
-    .action-btn:active { background: #222228; }
-    .action-btn span:last-child {
+    .util-btn:active {
+      background: #23232c;
+      border-color: #3f3f4c;
+    }
+    .btn-tag {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--muted);
     }
+
+    /* Module 4: 2 AM Scratchpad */
+    .scratch-input {
+      width: 100%;
+      background: #101014;
+      border: 1px dashed var(--card-border);
+      border-radius: 0.5rem;
+      padding: 0.75rem 0.85rem;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .scratch-input:focus {
+      border-color: var(--muted);
+    }
+
+    /* Toast Overlay */
     #toast {
       position: fixed;
       bottom: 2rem;
-      background: #fafafa;
-      color: #09090b;
+      background: var(--text);
+      color: var(--bg);
       font-family: var(--font-mono);
-      font-size: 0.75rem;
-      padding: 0.5rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 0.45rem 0.9rem;
       border-radius: 999px;
       opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.2s ease;
+      transform: translateY(8px);
+      transition: all 0.15s ease;
       pointer-events: none;
+      z-index: 100;
     }
-    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Footer / The Gill Check */
     footer {
-      margin-top: 1.5rem;
+      margin-top: 1.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1rem;
+      gap: 0.9rem;
     }
-    .water-btn {
+    .water-check {
       background: transparent;
-      border: 1px dashed var(--border);
+      border: 1px dashed var(--card-border);
       color: var(--muted);
       font-family: var(--font-mono);
-      font-size: 0.75rem;
-      padding: 0.6rem 1rem;
+      font-size: 0.72rem;
+      padding: 0.55rem 0.9rem;
       border-radius: 0.5rem;
       cursor: pointer;
     }
-    .legal {
+    .colophon {
       font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: #3f3f46;
+      font-size: 0.68rem;
+      color: var(--subtle);
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="shell">
     <header>
-      <span>rushi.isyour.mom // node-01</span>
-      <span>SYS_2026</span>
+      <span>rushi.isyour.mom // terminal</span>
+      <span>SYS_ACTIVE</span>
     </header>
 
-    <div class="card">
-      <div class="card-label">
-        <span class="dot"></span>
-        <span>Ambient State Engine</span>
+    <!-- MODULE 1: AMBIENT STATE ENGINE -->
+    <section class="card">
+      <div class="label">
+        <span class="dot" id="stateDot"></span>
+        <span id="stateLabel">Ambient State Engine</span>
       </div>
-      <div class="status-title">AVAILABLE / DOMESTICATED</div>
-      <div class="status-sub">Capable of polite conversation and sustained eye contact.</div>
-    </div>
+      <div class="status-headline" id="statusTitle">AVAILABLE / DOMESTICATED</div>
+      <div class="status-body" id="statusDesc">
+        Capable of polite conversation and sustained eye contact. Responses normal.
+      </div>
+    </section>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-label">Dinner Protocol</div>
-        <div class="val-highlight">Home for dinner</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Clinical Atlas</div>
-        <a href="https://drive.google.com" target="_blank" class="action-btn" style="padding: 0.45rem 0.6rem;">
-          <span>Open Atlas</span>
-          <span>500MB →</span>
+    <!-- MODULE 2: DOMESTIC PEACE TREATY -->
+    <div class="grid-pair">
+      <section class="card">
+        <div class="label">Dinner Protocol</div>
+        <div class="data-metric" id="dinnerState">Home for dinner</div>
+      </section>
+      <section class="card">
+        <div class="label">Surgical Vault</div>
+        <a href="https://drive.google.com" target="_blank" class="util-btn" style="padding: 0.45rem 0.65rem;">
+          <span>Atlas Reader</span>
+          <span class="btn-tag">500MB ↗</span>
         </a>
-      </div>
+      </section>
     </div>
 
-    <div class="card">
-      <div class="card-label">Clinical Quick-Launch</div>
+    <!-- MODULE 3: THE CLINICAL DESK -->
+    <section class="card">
+      <div class="label">Clinical Triage & Logging</div>
       <div class="btn-stack">
-        <a href="https://www.mdcalc.com" target="_blank" class="action-btn">
-          <span>MDCalc (Parkland, Alvarado, Child-Pugh)</span>
-          <span>↗</span>
+        <a href="https://www.mdcalc.com" target="_blank" class="util-btn">
+          <span>MDCalc (Alvarado, Child-Pugh, Parkland)</span>
+          <span class="btn-tag">OPEN ↗</span>
         </a>
-        <a href="https://forms.google.com" target="_blank" class="action-btn">
-          <span>Case Log Entry (Lap Chole / Appy)</span>
-          <span>↗</span>
+        <a href="https://forms.google.com" target="_blank" class="util-btn">
+          <span>Log Surgical Case (Lap Chole / Appendectomy)</span>
+          <span class="btn-tag">FORM ↗</span>
         </a>
       </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <div class="card-label">Domestic Protocol // One-Tap</div>
+    <!-- MODULE 2 (CONT.): HOUSEHOLD ONE-TAP -->
+    <section class="card">
+      <div class="label">Domestic Utilities // 1-Tap Copy</div>
       <div class="btn-stack">
-        <button class="action-btn" onclick="copyData('Guest_WiFi_Pass_2026', 'Home Wi-Fi copied.')">
-          <span>Home Wi-Fi Password</span>
-          <span>COPY</span>
+        <button class="util-btn" onclick="copyValue('Guest_WiFi_Pass_2026', 'Wi-Fi credentials copied.')">
+          <span>Home Wi-Fi Network & Password</span>
+          <span class="btn-tag">COPY</span>
         </button>
-        <button class="action-btn" onclick="copyData('Flat 402, Shanti Nilayam, Near Shardaben Hospital, Ahmedabad', 'Formatted address copied.')">
-          <span>Delivery Address (Formatted for Swiggy/Blinkit)</span>
-          <span>COPY</span>
+        <button class="util-btn" onclick="copyValue('Flat 402, Shanti Nilayam, Near Shardaben Hospital, Ahmedabad', 'Delivery address copied.')">
+          <span>Delivery Address (Swiggy / Blinkit Format)</span>
+          <span class="btn-tag">COPY</span>
         </button>
       </div>
-    </div>
+    </section>
 
+    <!-- MODULE 4: THE 2:00 AM SCRATCHPAD -->
+    <section class="card">
+      <div class="label">2:00 AM Scratchpad (Local / Instant)</div>
+      <input 
+        type="text" 
+        id="scratchField" 
+        class="scratch-input" 
+        placeholder="Type a fleeting thought or note and press Enter..." 
+        onkeydown="handleScratch(event)" 
+      />
+    </section>
+
+    <!-- GILL FOOTER -->
     <footer>
-      <button id="waterBtn" class="water-btn" onclick="confirmWater()">Click to confirm you drank water today</button>
-      <div class="legal">isyour.mom &bull; all rights reserved &bull; no adoption papers filed</div>
+      <button id="waterAction" class="water-check" onclick="verifyHydration()">
+        Click to confirm you drank water today
+      </button>
+      <div class="colophon">
+        isyour.mom &bull; no adoption papers filed &bull; residency utility
+      </div>
     </footer>
   </div>
 
   <div id="toast"></div>
 
   <script>
-    function copyData(text, msg) {
+    function copyValue(text, toastMsg) {
       navigator.clipboard.writeText(text).then(() => {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
+        triggerToast(toastMsg);
       });
     }
 
-    let clicks = 0;
-    function confirmWater() {
-      clicks++;
-      const btn = document.getElementById('waterBtn');
-      if (clicks === 1) {
+    function triggerToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('active');
+      setTimeout(() => toast.classList.remove('active'), 2200);
+    }
+
+    function handleScratch(e) {
+      if (e.key === 'Enter' && e.target.value.trim() !== '') {
+        const entry = e.target.value.trim();
+        const existing = JSON.parse(localStorage.getItem('mom_notes') || '[]');
+        existing.unshift({ time: new Date().toLocaleTimeString(), text: entry });
+        localStorage.setItem('mom_notes', JSON.stringify(existing));
+        e.target.value = '';
+        triggerToast('Captured to device storage.');
+      }
+    }
+
+    let clickTally = 0;
+    function verifyHydration() {
+      clickTally++;
+      const btn = document.getElementById('waterAction');
+      if (clickTally === 1) {
         btn.innerText = "Liars do not get dabbas.";
-        btn.style.color = "#ef4444";
-        btn.style.borderColor = "#ef4444";
+        btn.style.color = "var(--accent-red)";
+        btn.style.borderColor = "var(--accent-red)";
       } else {
-        btn.innerText = "Status: Still skeptical.";
+        btn.innerText = "Status: Skeptical. Drink water anyway.";
       }
     }
   </script>
 </body>
 </html>
-dress (Formatted for Swiggy/Blinkit)</span>
-          <span>COPY</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- FOOTER WITH WATER CONFIRMATION -->
-    <footer>
-      <button id="waterBtn" class="water-btn" onclick="confirmWater()">Click to confirm you drank water today</button>
-      <div class="legal">isyour.mom &bull; all rights reserved &bull; no adoption papers filed</div>
-    </footer>
-  </div>
-
-  <div id="toast"></div>
-
-  <script>
-    function copyData(text, msg) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(msg);
-      });
-    }
-
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.innerText = msg;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 2000);
-    }
-
-    let clicks = 0;
-    function confirmWater() {
-      clicks++;
-      const btn = document.getElementById('waterBtn');
-      if (clicks === 1) {
-        btn.innerText = "Liars do not get dabbas.";
-        btn.style.color = "#ef4444";
-        btn.style.borderColor = "#ef4444";
-      } else {
-        btn.innerText = "Status: Still skeptical.";
-      }
-    }
-  </script>
-</body>
-</html>`;
-
-    return new Response(html, {
-      headers: { "content-type": "text/html;charset=UTF-8" }
-    });
-  }
-};
