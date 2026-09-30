@@ -1,0 +1,374 @@
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // -----------------------------------------------------------
+    // 1. API: STATUS UPDATER ENDPOINT
+    // Example: /set?pin=7777&state=ot&dinner=no&note=Scrubbed+until+19:00
+    // -----------------------------------------------------------
+    if (url.pathname === "/set") {
+      const pin = url.searchParams.get("pin");
+      if (pin !== "7777") { // Change this PIN to your private 4-digit code
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const state = (url.searchParams.get("state") || "free").toLowerCase();
+      const dinner = url.searchParams.get("dinner") || "Home for dinner";
+      const note = url.searchParams.get("note") || "No notes posted.";
+
+      const statusMap = {
+        ot: { label: "IN THEATRE / SCRUBBED", dot: "#ef4444", sub: "Urgent hospital calls only. Food delivery will be ignored." },
+        rounds: { label: "ON WARD ROUNDS", dot: "#f59e0b", sub: "Phone is in pocket. Responses delayed 45–90 min." },
+        sleep: { label: "POST-CALL HIBERNATION", dot: "#6366f1", sub: "Do not knock unless the building is structurally compromised." },
+        free: { label: "AVAILABLE / DOMESTICATED", dot: "#22c55e", sub: "Capable of polite conversation and sustained eye contact." }
+      };
+
+      const selected = statusMap[state] || statusMap.free;
+      const payload = {
+        title: selected.label,
+        dot: selected.dot,
+        sub: note !== "No notes posted." ? note : selected.sub,
+        dinner: dinner
+      };
+
+      if (env.STATUS_KV) {
+        await env.STATUS_KV.put("status_payload", JSON.stringify(payload));
+      }
+
+      return new Response(`[OK] Status: ${payload.title} | Dinner: ${payload.dinner}`);
+    }
+
+    // -----------------------------------------------------------
+    // 2. ROUTE: /atlas (500MB Streaming PDF Viewer)
+    // -----------------------------------------------------------
+    if (url.pathname === "/atlas") {
+      // Replace with your Google Drive File ID or public R2 file URL
+      const fileId = "PASTE_YOUR_FILE_ID_HERE";
+      return new Response(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operative Atlas // Vault</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0a0a0c; height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+    header { background:#121215; border-bottom:1px solid #222; padding:0.6rem 1rem; display:flex; justify-content:space-between; align-items:center; font-family:monospace; font-size:0.8rem; color:#888; }
+    header a { color:#eaeaea; text-decoration:none; }
+    iframe { flex:1; width:100%; border:none; }
+  </style>
+</head>
+<body>
+  <header>
+    <span>vault://operative-atlas.pdf</span>
+    <a href="/">← Return to Command</a>
+  </header>
+  <iframe src="https://drive.google.com/file/d/${fileId}/preview" allow="autoplay"></iframe>
+</body>
+</html>`, {
+        headers: { "content-type": "text/html;charset=UTF-8" }
+      });
+    }
+
+    // -----------------------------------------------------------
+    // 3. RETRIEVE CURRENT STATE
+    // -----------------------------------------------------------
+    let live = {
+      title: "AVAILABLE / DOMESTICATED",
+      dot: "#22c55e",
+      sub: "Capable of polite conversation and sustained eye contact.",
+      dinner: "Yes (Home)"
+    };
+
+    if (env.STATUS_KV) {
+      const stored = await env.STATUS_KV.get("status_payload", { type: "json" });
+      if (stored) live = stored;
+    }
+
+    // -----------------------------------------------------------
+    // 4. MAIN BENTO COMMAND INTERFACE
+    // -----------------------------------------------------------
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rush.isyour.mom // command</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card: #121215;
+      --card-hover: #18181c;
+      --border: #222227;
+      --text: #f4f4f5;
+      --muted: #71717a;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem 3rem 1rem;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      padding: 0.25rem 0.25rem 0.5rem;
+    }
+    
+    /* Bento Modules */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.85rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .card-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: ${live.dot};
+      box-shadow: 0 0 8px ${live.dot}44;
+    }
+    .status-title {
+      font-size: 1.45rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .status-sub {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    /* Grid Splits */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+    .val-highlight {
+      font-size: 1.15rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    /* Actions & Copy Buttons */
+    .btn-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .action-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #18181c;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem 0.9rem;
+      border-radius: 0.55rem;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .action-btn:active {
+      background: #222228;
+      border-color: #383842;
+    }
+    .action-btn span:last-child {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      background: #fafafa;
+      color: #09090b;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Kanan-esque Footer Button */
+    footer {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .water-btn {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.6rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .water-btn:hover {
+      border-color: #3f3f46;
+      color: var(--text);
+    }
+    .legal {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #3f3f46;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span>rush.isyour.mom // node-01</span>
+      <span>SYS_2026</span>
+    </header>
+
+    <!-- MODULE 1: AMBIENT STATUS -->
+    <div class="card">
+      <div class="card-label">
+        <span class="dot"></span>
+        <span>Ambient State Engine</span>
+      </div>
+      <div class="status-title">${live.title}</div>
+      <div class="status-sub">${live.sub}</div>
+    </div>
+
+    <!-- MODULE 2: SPLIT LOGISTICS -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Dinner Protocol</div>
+        <div class="val-highlight">${live.dinner}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Clinical Atlas</div>
+        <a href="/atlas" class="action-btn" style="padding: 0.45rem 0.6rem;">
+          <span>Launch Atlas</span>
+          <span>500MB →</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- MODULE 3: CLINICAL POCKET LAUNCHERS -->
+    <div class="card">
+      <div class="card-label">Clinical Quick-Launch</div>
+      <div class="btn-stack">
+        <a href="https://www.mdcalc.com" target="_blank" class="action-btn">
+          <span>MDCalc (Parkland, Alvarado, Child-Pugh)</span>
+          <span>↗</span>
+        </a>
+        <a href="https://forms.google.com" target="_blank" class="action-btn">
+          <span>Case Log Entry (Lap Chole / Appy)</span>
+          <span>↗</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- MODULE 4: DOMESTIC UTILITIES -->
+    <div class="card">
+      <div class="card-label">Domestic Protocol // One-Tap</div>
+      <div class="btn-stack">
+        <button class="action-btn" onclick="copyData('Guest_WiFi_Pass_2026', 'Home Wi-Fi copied.')">
+          <span>Home Wi-Fi Password</span>
+          <span>COPY</span>
+        </button>
+        <button class="action-btn" onclick="copyData('Flat 402, Shanti Nilayam, Near Shardaben Hospital, Ahmedabad', 'Formatted address copied.')">
+          <span>Delivery Address (Formatted for Swiggy/Blinkit)</span>
+          <span>COPY</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FOOTER WITH WATER CONFIRMATION -->
+    <footer>
+      <button id="waterBtn" class="water-btn" onclick="confirmWater()">Click to confirm you drank water today</button>
+      <div class="legal">isyour.mom &bull; all rights reserved &bull; no adoption papers filed</div>
+    </footer>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    function copyData(text, msg) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(msg);
+      });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    let clicks = 0;
+    function confirmWater() {
+      clicks++;
+      const btn = document.getElementById('waterBtn');
+      if (clicks === 1) {
+        btn.innerText = "Liars do not get dabbas.";
+        btn.style.color = "#ef4444";
+        btn.style.borderColor = "#ef4444";
+      } else {
+        btn.innerText = "Status: Still skeptical.";
+      }
+    }
+  </script>
+</body>
+</html>`;
+
+    return new Response(html, {
+      headers: { "content-type": "text/html;charset=UTF-8" }
+    });
+  }
+};
